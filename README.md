@@ -7,10 +7,16 @@
 ## 2. Why This is a Good Candidate
 AP News is an excellent candidate for a performance audit because it sits at the intersection of high global traffic and heavy, dynamic content. As a leading news wire, the site must constantly load high-resolution photojournalism, auto-playing video embeds, and live tickers. Balancing this rich media with the necessity for near-instant load times (crucial for breaking news and mobile SEO) presents significant performance engineering challenges. An audit will reveal how they manage ad-tech scripts, image optimization, and Cumulative Layout Shift (CLS) on a highly mutable layout.
 
-## 3. Main PageSpeed Insights Scores
+## 3. Main PageSpeed Insights Scores & Testing Methodology
 *(Scores retrieved from PageSpeed Insights for the Homepage)*
 *   **Mobile Performance Score:** 22/100
 *   **Desktop Performance Score:** 54/100
+
+**Testing Methodology:** 
+This audit places a primary emphasis on the **Mobile** user experience. To ensure accurate representation of real-world mobile browsing, all baseline metrics and findings were measured using the following throttling profile:
+*   **Device Simulation:** Mobile (Moto G Power)
+*   **Network Throttling:** Slow 4G / Fast 3G
+*   **CPU Throttling:** 4x slowdown
 
 ## 4. Focus Pages for Audit
 This audit will focus on the following core page templates to evaluate different performance bottlenecks:

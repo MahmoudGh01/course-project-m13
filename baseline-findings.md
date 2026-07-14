@@ -79,3 +79,21 @@ Based on the network waterfall and payload breakdown, here are 4 additional find
 * **Which metric(s) are affected:** Soft Refresh Transfer Size, Cache Hit Ratio.
 * **Most likely cause:** `Cache-Control` headers are missing or set to `no-cache` for assets that rarely change (like global CSS files, brand logos, or certain stable vendor libraries).
 * **Likely solution:** Apply a long `max-age` cache policy (e.g., 1 year) combined with the `immutable` directive for all static CSS, JS, and font files. Use content hashing in filenames (e.g., `main.a1b2c3.js`) so the cache is only busted when the file is actually updated.
+
+---
+
+## Mobile-Specific Findings (Throttled Environment)
+
+The following findings were observed specifically when simulating a mid-tier mobile device on a throttled 3G/4G network with a 4x CPU slowdown.
+
+### Finding 10: CPU Bottlenecking on Throttled Mobile Devices
+*   **How this affects users:** On average mid-tier mobile devices (simulated with 4x CPU throttling), the phone's processor simply cannot parse the sheer volume of JavaScript fast enough. The page becomes entirely unresponsive to taps and scrolls for several seconds after the visual elements appear.
+*   **Which metric(s) are affected:** Time to Interactive (TTI), Interaction to Next Paint (INP), Total Blocking Time (TBT).
+*   **Most likely cause:** AP News relies on complex client-side hydration and heavy ad-auction scripts. While a fast desktop CPU handles this instantly, a throttled mobile CPU chokes on the parsing, compiling, and execution phases of this JavaScript.
+*   **Likely solution (Corrective):** Shift from client-side hydration to server-side rendering (SSR) or static generation (SSG) for the core article content. Implement "Islands Architecture" (e.g., Astro) to only hydrate interactive components (like video players or image carousels) rather than the entire page layout.
+
+### Finding 11: Render-Blocking Mobile Navigation/Menu
+*   **How this affects users:** Mobile users on a throttled 3G/4G network stare at a white screen for an extended period because the complex CSS/JS required to build the hidden "hamburger" mega-menu blocks the initial paint of the actual news article.
+*   **Which metric(s) are affected:** First Contentful Paint (FCP), Largest Contentful Paint (LCP).
+*   **Most likely cause:** The CSS and JavaScript for the complex mobile off-canvas navigation are bundled into the main rendering path, forcing the browser to download and process them before displaying the main article text.
+*   **Likely solution (Corrective):** Inline the critical CSS required for the visible top bar, and defer the loading of the CSS/JS for the actual dropdown/hamburger menu until after the `window.onload` event, or lazy-load it upon the first user interaction (click).
