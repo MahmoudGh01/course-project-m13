@@ -31,3 +31,51 @@ Based on the PageSpeed Insights baseline for the primary page (apnews.com), the 
 * **Which metric(s) are affected:** First Contentful Paint (FCP), Largest Contentful Paint (LCP).
 * **Most likely cause:** Custom web fonts (e.g., AP's specific branding typography) are blocking the render. The browser hides the text until the large font files finish downloading.
 * **Likely solution:** Add `font-display: swap` to all `@font-face` declarations. This forces the browser to immediately display a fallback system font (like Arial or Georgia) and swap it to the custom font once it loads, allowing users to read the news instantly.
+
+---
+
+## Baseline Metrics: Networking Stats (Homepage)
+
+An analysis of the Network tab during a standard homepage load reveals the heavy payload required to render a modern news site, largely driven by media and third-party advertising scripts.
+
+*   **Total Requests:** ~350 requests
+*   **Initial Load (Uncached):**
+    *   Data Transferred: ~5.2 MB
+    *   Total Resource Size (Uncompressed): ~15.5 MB
+    *   Compression Reduction: ~10.3 MB saved (~66% reduction via Gzip/Brotli on text assets)
+*   **Soft Refresh (Cached):**
+    *   Data Transferred: ~450 KB
+    *   Reduction due to caching: ~91% reduction. The remaining 450 KB consists mostly of dynamic ad calls, fresh tracking beacons, and updated news JSON feeds.
+*   **Payload Breakdown:**
+    *   **JS/CSS:** ~3.5 MB transferred. (Heavily dominated by JavaScript. It is compressed via Brotli, but the sheer volume of code remains massive).
+    *   **Images/Media:** ~1.5 MB transferred. (Some are compressed into WebP, but several legacy JPGs remain, and they are not always appropriately sized for mobile screens).
+
+---
+
+## Additional Key Findings (Networking)
+
+Based on the network waterfall and payload breakdown, here are 4 additional findings regarding the site's data delivery:
+
+### Finding 6: Excessive HTTP Requests (Ad-Tech & Trackers)
+* **How this affects users:** The browser has to open hundreds of connections. On mobile networks with high latency, this causes a "traffic jam" that delays the loading of the actual news articles, draining the battery and user data.
+* **Which metric(s) are affected:** Page Load Time, Speed Index, Request Count.
+* **Most likely cause:** A massive reliance on client-side header bidding (programmatic ads) and multiple overlapping analytics/tracking pixels that all fire independent HTTP requests upon page load.
+* **Likely solution:** Implement Server-Side Tagging to consolidate analytics requests into a single stream. Lazy-load all below-the-fold ad slots so their requests only trigger when the user scrolls near them.
+
+### Finding 7: Unoptimized & Oversized Images
+* **How this affects users:** Users on slow 3G/4G connections use up their monthly data caps quickly and have to wait for large photos to slowly "paint" onto the screen.
+* **Which metric(s) are affected:** Payload Size (Images), Largest Contentful Paint (LCP).
+* **Most likely cause:** High-resolution editorial photos are being served without proper responsive sizing (e.g., sending a 2000px wide image to a 400px wide mobile screen) and sometimes falling back to older formats like JPEG instead of modern, highly-compressed formats.
+* **Likely solution:** Utilize an Image CDN (like Cloudinary or Imgix) to automatically convert images to AVIF/WebP based on browser support, and implement robust `srcset` attributes so the browser only downloads the image size it actually needs.
+
+### Finding 8: Bloated JavaScript Payloads
+* **How this affects users:** Even if the network is fast, downloading 3.5 MB of JavaScript means the user's phone processor has to spend several seconds parsing and compiling the code before they can click menus or interact with the page.
+* **Which metric(s) are affected:** Total Byte Weight, Time to Interactive (TTI).
+* **Most likely cause:** Shipping large, unoptimized vendor bundles, retaining unused code, and relying heavily on bloated third-party video players and UI frameworks without aggressive tree-shaking.
+* **Likely solution:** Implement rigorous code splitting so only the JS required for the initial viewport is downloaded. Audit and remove unused third-party scripts, and delay the loading of the heavy video player JS until the user explicitly clicks "Play".
+
+### Finding 9: Inefficient Caching for Semi-Static Assets
+* **How this affects users:** When a user visits the homepage, reads an article, and clicks "Back" to the homepage, they have to re-download assets they just fetched seconds ago, making navigation feel sluggish.
+* **Which metric(s) are affected:** Soft Refresh Transfer Size, Cache Hit Ratio.
+* **Most likely cause:** `Cache-Control` headers are missing or set to `no-cache` for assets that rarely change (like global CSS files, brand logos, or certain stable vendor libraries).
+* **Likely solution:** Apply a long `max-age` cache policy (e.g., 1 year) combined with the `immutable` directive for all static CSS, JS, and font files. Use content hashing in filenames (e.g., `main.a1b2c3.js`) so the cache is only busted when the file is actually updated.
