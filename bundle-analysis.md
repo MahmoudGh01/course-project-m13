@@ -29,3 +29,24 @@ This document outlines the bundling strategy for JavaScript, CSS, Media, and Thi
 *   **How are they loaded?** Most analytics and ad-bidding scripts are loaded up-front. They are often injected synchronously or as high-priority async scripts directly in the document `<head>`.
 *   **Impact on Metrics:** Massive. These third-party tools are the primary cause of the site's high Total Blocking Time (TBT) and poor mobile interactivity (INP). The browser spends its time negotiating ad auctions rather than painting the news content.
 *   **Inappropriate/Unnecessary?** Yes. There appears to be significant redundancy in the analytics trackers (e.g., using both Chartbeat and GA for overlapping engagement metrics). Furthermore, legacy tracking pixels remain active, adding network overhead without providing unique business value.
+
+---
+
+## Deep Dive Analysis: Coverage, Performance, and Layers
+
+### Code Coverage Analysis
+*   **Critical CSS Extraction:** The site does *not* extract and inline critical CSS. The `<head>` references render-blocking global stylesheets.
+*   **Unused CSS:** Coverage shows approximately 65% of the downloaded CSS is unused on the initial load. It primarily comes from a monolithic global stylesheet (`main-app-[hash].css`) that contains styling for complex article templates, interactive widgets, and deep category grids that do not exist on the homepage.
+*   **Unused JS:** Coverage shows roughly 45% unused JavaScript. This is coming from two main sources: massive third-party ad-tech bundles loading synchronously, and a large vendor chunk (`framework-[hash].js`) that includes the entire React DOM and heavy utilities (like Moment.js or Lodash) even when only a fraction of their functions are utilized.
+
+### Performance Flame Chart Analysis
+*   **Flame Chart Observations:** During initial page load and rapid scrolling, the main thread shows severe, extended "yellow" (JavaScript execution) and "purple" (Layout/Reflow) blocks. 
+*   **Dropped/Skipped Frames:** Yes, there are significant dropped frames (jank) specifically when scrolling past the first 3 news articles. 
+*   **Causes of Dropped Frames:** The dropped frames are caused by massive "Recalculate Style" and "Layout" tasks triggered by lazy-loaded ad slots injecting themselves into the DOM and pushing the surrounding text out of the way. 
+*   **Are they excessive?** Yes, the layout thrashing is excessive and directly harms the reading experience.
+
+### Layers and Animations
+*   **Animation Quality:** The site features an animated "Breaking News" ticker and hover states on article cards. The ticker experiences noticeable first-frame jank and occasional stuttering during scrolling.
+*   **Animation Drivers:** The ticker animation is driven by animating the `margin-left` property (a layout trigger) rather than `transform` (a composite trigger). This forces the browser to recalculate the layout on every frame.
+*   **Paint Layers:** The page creates an excessive number of paint layers (150+).
+*   **Layer Causes:** Many layers are created unnecessarily because developers have aggressively applied `transform: translateZ(0)` and `will-change: transform` to nearly all article cards and ad containers in a misguided attempt to force hardware acceleration, which actually causes memory bloat and compositing delays.

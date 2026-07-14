@@ -146,6 +146,38 @@ An analysis of the Network tab during a standard homepage load reveals the heavy
   - **Cause**: Global stylesheets that aggregate styles from the entire site, combined with dead/legacy CSS code that was never removed when components were deprecated.
   - **Solution**: Implement a tool like PurgeCSS during the build step to strip unused classes, and extract Critical CSS to inline in the `<head>`, while deferring the rest of the stylesheet.
 
+### Advanced Performance & Rendering Findings
+
+- Severe Layout Thrashing Causes Dropped Frames on Scroll.
+  - **Prioritization**: 567
+    - **Impact**: 9
+    - **Confidence**: 9
+    - **Ease**: 7
+  - **Baseline**: Cumulative Layout Shift (CLS), Interaction to Next Paint (INP)
+  - **How this affects users**: When users scroll down the page, the screen stutters and drops frames, creating a janky, broken feeling as new ads load in.
+  - **Cause**: Flame charts reveal massive "Recalculate Style" blocks caused by lazy-loaded ad iframes expanding into the DOM without reserved space, forcing the browser to recalculate the entire page layout repeatedly.
+  - **Solution**: Strictly define `min-height` and `aspect-ratio` CSS properties for all ad container `div`s so the browser can calculate the layout once, before the ad script even executes.
+
+- Failure to Extract Critical CSS Causes Render Blocking.
+  - **Prioritization**: 448
+    - **Impact**: 8
+    - **Confidence**: 8
+    - **Ease**: 7
+  - **Baseline**: First Contentful Paint (FCP)
+  - **How this affects users**: Users stare at a blank screen while the browser downloads and parses a massive stylesheet, 65% of which isn't even used on the current page.
+  - **Cause**: Relying on a monolithic global CSS file without extracting the styles needed specifically for the above-the-fold content.
+  - **Solution**: Implement a build-step tool (like `critical` or Next.js built-in CSS optimization) to extract above-the-fold styles, inline them in the `<head>`, and load the rest of the CSS asynchronously.
+
+- Animation Jank from Layout-Triggering Properties and Excessive Layers.
+  - **Prioritization**: 336
+    - **Impact**: 6
+    - **Confidence**: 8
+    - **Ease**: 7
+  - **Baseline**: Interaction to Next Paint (INP)
+  - **How this affects users**: The "Breaking News" ticker stutters, and the site feels sluggish on low-memory devices due to GPU memory exhaustion.
+  - **Cause**: The ticker is animated using `margin-left` (forcing layout recalcs on every frame), and developers have heavily overused `translateZ(0)` on static elements, creating 150+ useless paint layers that choke the compositor thread.
+  - **Solution**: Change the ticker animation to use `transform: translateX()`, which runs on the compositor thread. Audit and remove arbitrary `will-change` and `translateZ(0)` properties from non-animating article cards.
+
 ---
 
 ## Mobile-Specific Findings (Throttled Environment)
