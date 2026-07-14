@@ -114,6 +114,38 @@ An analysis of the Network tab during a standard homepage load reveals the heavy
   - **Cause**: Shipping large, unoptimized vendor bundles, retaining unused code, and relying heavily on bloated third-party video players and UI frameworks without aggressive tree-shaking.
   - **Solution**: Implement rigorous code splitting so only the JS required for the initial viewport is downloaded. Audit and remove unused third-party scripts, and delay the loading of the heavy video player JS until the user explicitly clicks "Play".
 
+### Bundle & Asset Delivery Findings
+
+- Massive Unused JavaScript in Vendor Bundles.
+  - **Prioritization**: 432
+    - **Impact**: 8
+    - **Confidence**: 9
+    - **Ease**: 6
+  - **Baseline**: Total Byte Weight, Time to Interactive (TTI)
+  - **How this affects users**: The browser downloads hundreds of kilobytes of JavaScript that are never executed on the current page, wasting mobile data and forcing the CPU to parse dead code, delaying interactivity.
+  - **Cause**: Lack of component-level code splitting. Heavy libraries (like video players, social embed widgets, or complex charting libraries) are bundled into the main vendor chunk rather than being dynamically imported only when needed.
+  - **Solution**: Implement dynamic imports (e.g., `React.lazy()` or Next.js `next/dynamic`) for all below-the-fold or non-critical components so their JS is only fetched when they enter the viewport.
+
+- Overlapping and Synchronous Third-Party Bundles.
+  - **Prioritization**: 405
+    - **Impact**: 9
+    - **Confidence**: 9
+    - **Ease**: 5
+  - **Baseline**: Total Blocking Time (TBT), Page Load Time
+  - **How this affects users**: The main news content is held hostage while the browser connects to multiple different advertising and tracking domains to download their respective JavaScript bundles.
+  - **Cause**: Marketing and ad-tech teams adding overlapping analytics scripts (Chartbeat, GA, custom pixels) directly to the document `<head>` without delayed execution.
+  - **Solution**: Conduct a strict third-party audit to remove redundant trackers. Move all remaining analytics to Google Tag Manager and configure them to load only *after* the `window.onload` event.
+
+- High Volume of Unused CSS Blocking Render.
+  - **Prioritization**: 336
+    - **Impact**: 7
+    - **Confidence**: 8
+    - **Ease**: 6
+  - **Baseline**: First Contentful Paint (FCP)
+  - **How this affects users**: The browser halts rendering the page to download and parse a massive CSS file, half of which contains rules for pages or components the user isn't currently looking at, leading to a prolonged white screen.
+  - **Cause**: Global stylesheets that aggregate styles from the entire site, combined with dead/legacy CSS code that was never removed when components were deprecated.
+  - **Solution**: Implement a tool like PurgeCSS during the build step to strip unused classes, and extract Critical CSS to inline in the `<head>`, while deferring the rest of the stylesheet.
+
 ---
 
 ## Mobile-Specific Findings (Throttled Environment)
