@@ -203,3 +203,27 @@ The following findings were observed specifically when simulating a mid-tier mob
   - **How this affects users**: On average mid-tier mobile devices (simulated with 4x CPU throttling), the phone's processor simply cannot parse the sheer volume of JavaScript fast enough. The page becomes entirely unresponsive to taps and scrolls for several seconds after the visual elements appear.
   - **Cause**: AP News relies on complex client-side hydration and heavy ad-auction scripts. While a fast desktop CPU handles this instantly, a throttled mobile CPU chokes on the parsing, compiling, and execution phases of this JavaScript.
   - **Solution**: Shift from client-side hydration to server-side rendering (SSR) or static generation (SSG) for the core article content. Implement "Islands Architecture" (e.g., Astro) to only hydrate interactive components (like video players or image carousels) rather than the entire page layout.
+
+## Rendering Strategies & Hydration
+
+AP News relies heavily on Server-Side Rendering (SSR) combined with aggressive CDN Edge Caching (via Cloudflare) for its core pages (Homepage, Hubs, Articles). This provides fast initial document delivery but introduces significant hydration costs on the client. Live blogs and interactive media rely on Client-Side Rendering (CSR) to manage real-time updates.
+
+- DOM Bloat and Memory Leaks During Extended Live Blog Sessions (CSR).
+  - **Prioritization**: 294
+    - **Impact**: 7
+    - **Confidence**: 7
+    - **Ease**: 6
+  - **Baseline**: DOM Size, Memory Usage, Interaction to Next Paint (INP)
+  - **How this affects users**: When users leave a live breaking news page open for an extended period, the browser continuously appends new updates via client-side rendering. Eventually, the page becomes unresponsive, scrolling becomes janky, and mobile browsers may crash due to memory exhaustion.
+  - **Cause**: Continual DOM appending via CSR without garbage collection or off-screen element removal.
+  - **Solution**: Implement DOM virtualization (windowing) for the live blog feed. Only render the updates currently visible in the viewport (and a small buffer), unmounting older updates from the DOM to maintain a stable, lightweight HTML structure.
+
+- High Client-Side Hydration Overhead on Static Content.
+  - **Prioritization**: 192
+    - **Impact**: 8
+    - **Confidence**: 8
+    - **Ease**: 3
+  - **Baseline**: Total Blocking Time (TBT), Time to Interactive (TTI)
+  - **How this affects users**: Users can see the text of an article quickly due to Edge-cached SSR, but they cannot interact with menus, share buttons, or embedded media for several seconds because the mobile CPU is paralyzed executing JavaScript to "hydrate" the entire page layout.
+  - **Cause**: The framework relies on full-page hydration, sending massive JS payloads to re-render and attach event listeners to elements that are purely static text (like the article body).
+  - **Solution**: Shift toward an "Islands Architecture" (e.g., using Astro or React Server Components). Ship plain HTML for the article text and images, and only load and hydrate JavaScript for specific interactive "islands" (like the video player, share menu, or ad slots).
