@@ -1,6 +1,7 @@
 # Course Project: Performance Audit Report
 
 *   **[Executive Summary](executive-summary.md)** (For C-level and Directors)
+*   **[Developer Implementation Guide](developer-implementation.md)** (For Engineering Team)
 *   **[Baseline Findings](baseline-findings.md)**
 *   **[Bundle Analysis](bundle-analysis.md)**
 *   **[Prioritization](prioritization.md)**
