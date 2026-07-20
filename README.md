@@ -1,5 +1,10 @@
 # Course Project: Performance Audit Report
 
+*   **[Executive Summary](executive-summary.md)** (For C-level and Directors)
+*   **[Baseline Findings](baseline-findings.md)**
+*   **[Bundle Analysis](bundle-analysis.md)**
+*   **[Prioritization](prioritization.md)**
+
 ## 1. Target Website
 *   **Name:** AP News
 *   **URL:** [https://apnews.com/](https://apnews.com/)
